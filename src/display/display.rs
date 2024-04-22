@@ -19,7 +19,7 @@ const SET: [u8; 8] = [1, 2, 4, 8, 16, 32, 64, 128];
 const CLR: [u8; 8] = [!1, !2, !4, !8, !16, !32, !64, !128];
 
 pub struct Display<'a> {
-    pub buffer: Vec<Vec<u8>>,
+    pub buffer: Vec<u8>,
     pub width: u16,
     pub height: u16,
     vcom: u8,
@@ -53,7 +53,14 @@ impl<'b> Display<'b> {
 
         let device_driver = SpiDeviceDriver::new(driver, Some(cs), &config)?;
 
-        let screen_buffer: Vec<Vec<u8>> = vec![vec![0xFF; (width / 8) as usize]; height.into()];
+        let mut screen_buffer: Vec<u8> = vec![0xFF; 2 + ((width / 8 + 2) * height) as usize];
+
+        for i in 0..height as u8 {
+            screen_buffer[1 + ((width / 8 + 2) * (i as u16)) as usize] = i + 1;
+            screen_buffer[(1 + (width / 8 + 1) + ((width / 8 + 2) * (i as u16))) as usize] = 0x00;
+        }
+
+        screen_buffer[(1 + (width / 8 + 2) * height) as usize] = 0x00;
 
         Ok(Self {
             buffer: screen_buffer,
@@ -63,6 +70,11 @@ impl<'b> Display<'b> {
             device: device_driver,
             bytes_per_line: (width / 8) as u8,
         })
+    }
+
+    fn calc_offset(&self, x: u16, y: u16) -> usize {
+        let left = x - (x % 8);
+        (1 + y * (2 + self.bytes_per_line as u16) + (1 + left / 8)) as usize
     }
 
     fn toggle_vcom(&mut self) {
@@ -80,28 +92,26 @@ impl<'b> Display<'b> {
     }
 
     pub fn clear_buffer(&mut self) {
-        self.buffer.fill(vec![0xFF; self.bytes_per_line as usize]);
+        let mut screen_buffer: Vec<u8> =
+            vec![0xFF; 2 + ((self.width / 8 + 2) * self.height) as usize];
+
+        for i in 0..self.height as u8 {
+            screen_buffer[1 + ((self.width / 8 + 2) * (i as u16)) as usize] = i + 1;
+            screen_buffer
+                [(1 + (self.width / 8 + 1) + ((self.width / 8 + 2) * (i as u16))) as usize] = 0x00;
+        }
+
+        screen_buffer[(1 + (self.width / 8 + 2) * self.height) as usize] = 0x00;
+
+        self.buffer = screen_buffer;
     }
 
     pub fn refresh(&mut self) -> anyhow::Result<()> {
         let command: u8 = self.vcom | SHARPMEM_CMD_WRITE_LINE;
-        let mut commands: Vec<u8> = vec![command];
-        let mut num: u8 = 0;
-
-        while (num as u16) < self.height {
-            //log::info!("number: {}, h: {}", num, self.height);
-            let mut cloned_row = self.buffer[num as usize].clone();
-            commands.push(num + 1);
-            commands.append(&mut cloned_row);
-            commands.push(0x00);
-
-            num += 1;
-        }
-
-        commands.push(0x00);
+        self.buffer[0] = command;
 
         self.toggle_vcom();
-        self.device.write(&commands).map_err(anyhow::Error::from)
+        self.device.write(&self.buffer).map_err(anyhow::Error::from)
     }
 
     pub fn refresh_line(&mut self, line_num: u8) -> anyhow::Result<()> {
@@ -114,14 +124,17 @@ impl<'b> Display<'b> {
         }
 
         let command: u8 = self.vcom | SHARPMEM_CMD_WRITE_LINE;
-        let mut commands: Vec<u8> = vec![command, line_num + 1];
-        let mut cloned_row = self.buffer[line_num as usize].clone();
+        let mut row = vec![0x00; (self.bytes_per_line + 4) as usize];
+        row[0] = command;
+        row[1] = line_num;
 
-        commands.append(&mut cloned_row);
-        commands.push(0x00);
-        commands.push(0x00);
+        for i in 0..self.bytes_per_line {
+            row[(i + 2) as usize] =
+                self.buffer[((2 + (2 + self.bytes_per_line) * line_num) + i) as usize];
+        }
 
-        self.device.write(&commands).map_err(anyhow::Error::from)
+        self.toggle_vcom();
+        self.device.write(&row).map_err(anyhow::Error::from)
     }
 
     pub fn set_pixel(&mut self, x: u16, y: u16, value: bool) -> anyhow::Result<()> {
@@ -130,16 +143,16 @@ impl<'b> Display<'b> {
         }
 
         let left: u8 = (x % 8) as u8;
-        let whole: u16 = x - left as u16;
+        let offset = self.calc_offset(x, y);
 
         if value {
             let value: u8 = SET[left as usize];
 
-            self.buffer[y as usize][whole as usize] |= value;
+            self.buffer[offset] |= value;
         } else {
             let value: u8 = CLR[left as usize];
 
-            self.buffer[y as usize][whole as usize] &= value;
+            self.buffer[offset] &= value;
         }
 
         Ok(())
