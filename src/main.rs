@@ -1,7 +1,7 @@
 use anyhow::Result;
 use esp_idf_svc::hal::prelude::*;
 use esp_idf_svc::hal::{delay::Delay, gpio::PinDriver, peripherals::Peripherals};
-use esp_rs_extensa::display::display::Display;
+use esp_rs_extensa::display::Display;
 
 fn main() -> Result<()> {
     // It is necessary to call this function once. Otherwise some patches to the runtime
@@ -30,22 +30,22 @@ fn main() -> Result<()> {
     let delay: Delay = Default::default();
 
     loop {
-        display.set_pixel(10, 10, true)?;
-        display.set_pixel(10, 11, true)?;
-        display.set_pixel(11, 10, true)?;
-        display.set_pixel(11, 11, true)?;
+        display.set_pixel(10, 10, false)?;
+        display.set_pixel(10, 11, false)?;
+        display.set_pixel(11, 10, false)?;
+        display.set_pixel(11, 11, false)?;
         display.refresh()?;
         led.set_high()?;
         log::info!("Set High!");
-        delay.delay_us(100000);
+        delay.delay_us(1000000);
         /*display.set_pixel(10, 10, false)?;
         display.set_pixel(10, 11, false)?;
         display.set_pixel(11, 10, false)?;
         display.set_pixel(11, 11, false)?;
         display.refresh()?;*/
-        display.clear_buffer();
+        display.clear_display()?;
         led.set_low()?;
         log::info!("Set Low!");
-        delay.delay_us(100000);
+        delay.delay_us(1000000);
     }
 }

@@ -3,7 +3,7 @@ use std::vec;
 use esp_idf_svc::hal::gpio::{AnyIOPin, OutputPin};
 use esp_idf_svc::hal::interrupt::IntrFlags;
 use esp_idf_svc::hal::peripheral::Peripheral;
-use esp_idf_svc::hal::spi::config::DriverConfig;
+use esp_idf_svc::hal::spi::config::{DriverConfig, MODE_0};
 use esp_idf_svc::hal::spi::SpiAnyPins;
 use esp_idf_svc::hal::spi::{
     config::{BitOrder, Config},
@@ -38,9 +38,11 @@ impl<'b> Display<'b> {
         height: u16,
     ) -> anyhow::Result<Self> {
         let config = Config::new()
+            .data_mode(MODE_0)
             .baudrate(freq)
             .bit_order(BitOrder::LsbFirst)
-            .queue_size(1);
+            .cs_active_high()
+            .queue_size(4);
 
         let driver_config: DriverConfig = DriverConfig {
             dma: Dma::Disabled,
@@ -51,7 +53,7 @@ impl<'b> Display<'b> {
 
         let device_driver = SpiDeviceDriver::new(driver, Some(cs), &config)?;
 
-        let screen_buffer: Vec<Vec<u8>> = vec![vec![0xFF; (width / 8).into()]; height.into()];
+        let screen_buffer: Vec<Vec<u8>> = vec![vec![0xFF; (width / 8) as usize]; height.into()];
 
         Ok(Self {
             buffer: screen_buffer,
@@ -78,7 +80,7 @@ impl<'b> Display<'b> {
     }
 
     pub fn clear_buffer(&mut self) {
-        self.buffer.fill(vec![0xFF, self.bytes_per_line]);
+        self.buffer.fill(vec![0xFF; self.bytes_per_line as usize]);
     }
 
     pub fn refresh(&mut self) -> anyhow::Result<()> {
@@ -88,8 +90,10 @@ impl<'b> Display<'b> {
 
         while (num as u16) < self.height {
             //log::info!("number: {}, h: {}", num, self.height);
+            let mut cloned_row = self.buffer[num as usize].clone();
             commands.push(num + 1);
-            commands.append(&mut self.buffer[num as usize]);
+            commands.append(&mut cloned_row);
+            commands.push(0x00);
 
             num += 1;
         }
@@ -97,6 +101,26 @@ impl<'b> Display<'b> {
         commands.push(0x00);
 
         self.toggle_vcom();
+        self.device.write(&commands).map_err(anyhow::Error::from)
+    }
+
+    pub fn refresh_line(&mut self, line_num: u8) -> anyhow::Result<()> {
+        if line_num as u16 > self.height {
+            return Err(anyhow::anyhow!(
+                "Line number biger then height! (ln: {}, h: {})",
+                line_num,
+                self.height
+            ));
+        }
+
+        let command: u8 = self.vcom | SHARPMEM_CMD_WRITE_LINE;
+        let mut commands: Vec<u8> = vec![command, line_num + 1];
+        let mut cloned_row = self.buffer[line_num as usize].clone();
+
+        commands.append(&mut cloned_row);
+        commands.push(0x00);
+        commands.push(0x00);
+
         self.device.write(&commands).map_err(anyhow::Error::from)
     }
 
@@ -110,7 +134,7 @@ impl<'b> Display<'b> {
 
         if value {
             let value: u8 = SET[left as usize];
-            log::info!("whole: {}, size {}", whole, self.buffer[y as usize].len());
+
             self.buffer[y as usize][whole as usize] |= value;
         } else {
             let value: u8 = CLR[left as usize];
