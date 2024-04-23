@@ -19,7 +19,7 @@ const SET: [u8; 8] = [1, 2, 4, 8, 16, 32, 64, 128];
 const CLR: [u8; 8] = [!1, !2, !4, !8, !16, !32, !64, !128];
 
 pub struct DisplayDriver<'a> {
-    pub buffer: Vec<u8>,
+    pub buffer: Vec<Vec<u8>>,
     pub width: u16,
     pub height: u16,
     vcom: u8,
@@ -108,53 +108,86 @@ impl<'b> DisplayDriver<'b> {
 
     pub fn refresh(&mut self) -> anyhow::Result<()> {
         let command: u8 = self.vcom | SHARPMEM_CMD_WRITE_LINE;
-        self.buffer[0] = command;
+        let mut commands = self.buffer.iter().fold(vec![command], |mut acc, el| {
+            acc.push(((acc.len() - 1) / (self.bytes_per_line as usize + 2) + 1) as u8); // calculate line number
+            acc.extend(el);
+            acc.push(0x00);
+            acc
+        });
+
+        commands.push(0x00);
 
         self.toggle_vcom();
         self.device.write(&self.buffer).map_err(anyhow::Error::from)
     }
 
     pub fn refresh_line(&mut self, line_num: u8) -> anyhow::Result<()> {
-        if line_num as u16 > self.height {
-            return Err(anyhow::anyhow!(
-                "Line number biger then height! (ln: {}, h: {})",
-                line_num,
-                self.height
-            ));
-        }
-
         let command: u8 = self.vcom | SHARPMEM_CMD_WRITE_LINE;
-        let mut row = vec![0x00; (self.bytes_per_line + 4) as usize];
-        row[0] = command;
-        row[1] = line_num;
+        let mut commands: Vec<u8> = vec![command, line_num + 1];
 
-        for i in 0..self.bytes_per_line {
-            row[(i + 2) as usize] =
-                self.buffer[((2 + (2 + self.bytes_per_line) * line_num) + i) as usize];
+        if let Some(line) = &self.buffer.get_mut(line_num as usize) {
+            commands.extend(line.iter());
+            commands.push(0x00);
+            commands.push(0x00);
+
+            self.toggle_vcom();
+            self.device.write(&commands).map_err(anyhow::Error::from)
+        } else {
+            Err(anyhow::anyhow!("line number is out of bounds"))
         }
-
-        self.toggle_vcom();
-        self.device.write(&row).map_err(anyhow::Error::from)
     }
 
-    pub fn set_pixel(&mut self, x: u16, y: u16, value: bool) -> anyhow::Result<()> {
-        if x >= self.width || y >= self.height {
-            return Err(anyhow::anyhow!("Dimensions out of bounds."));
-        }
-
+    pub fn set_pixel(&mut self, x: u16, y: u16, pixel: bool) -> anyhow::Result<()> {
         let left: u8 = (x % 8) as u8;
-        let offset = self.calc_offset(x, y);
+        let whole: u16 = (x - left as u16) / 8;
+        let row = self.buffer.get_mut(y as usize);
 
-        if value {
-            let value: u8 = SET[left as usize];
-
-            self.buffer[offset] |= value;
-        } else {
-            let value: u8 = CLR[left as usize];
-
-            self.buffer[offset] &= value;
+        if row.is_none() {
+            return Err(anyhow::anyhow!("y index is out of bounds"));
         }
 
-        Ok(())
+        if let Some(value) = row.unwrap().get_mut(whole as usize) {
+            if pixel {
+                *value |= SET[left as usize];
+            } else {
+                *value &= CLR[left as usize];
+            }
+
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("x index is out of bounds"))
+        }
     }
 }
+
+/*impl Draw for DisplayDriver<'_> {
+    fn set_pixel(&mut self, c: Vect2D, pixel: bool) -> anyhow::Result<()> {
+        let left: u8 = (c.x % 8) as u8;
+        let whole: u16 = (c.x - left as u16) / 8;
+        let row = self.buffer.get_mut(c.y as usize);
+
+        if row.is_none() {
+            return Err(anyhow::anyhow!("y index is out of bounds"));
+        }
+
+        if let Some(value) = row.unwrap().get_mut(whole as usize) {
+            if pixel {
+                *value |= SET[left as usize];
+            } else {
+                *value &= CLR[left as usize];
+            }
+
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("x index is out of bounds"))
+        }
+    }
+
+    fn draw_line(c1: Vect2D, c2: Vect2D, color: bool) -> anyhow::Result<()> {}
+
+    fn draw_hline(c: Vect2D, len: u16, color: bool) -> anyhow::Result<()> {}
+
+    fn draw_vline(c: Vect2D, hight: u16, color: bool) -> anyhow::Result<()> {}
+
+    fn draw_buffer(c: Vect2D, buffer: &[u8]) -> anyhow::Result<()> {}
+}*/
