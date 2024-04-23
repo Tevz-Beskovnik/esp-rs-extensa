@@ -129,10 +129,42 @@ impl<'b> DisplayDriver<'b> {
             } else {
                 *value &= CLR[left as usize];
             }
-        } else {
-            return Err(anyhow::anyhow!("x index is out of bounds"));
-        }
 
-        Ok(())
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("x index is out of bounds"))
+        }
     }
 }
+
+/*impl Draw for DisplayDriver<'_> {
+    fn set_pixel(&mut self, c: Vect2D, pixel: bool) -> anyhow::Result<()> {
+        let left: u8 = (c.x % 8) as u8;
+        let whole: u16 = (c.x - left as u16) / 8;
+        let row = self.buffer.get_mut(c.y as usize);
+
+        if row.is_none() {
+            return Err(anyhow::anyhow!("y index is out of bounds"));
+        }
+
+        if let Some(value) = row.unwrap().get_mut(whole as usize) {
+            if pixel {
+                *value |= SET[left as usize];
+            } else {
+                *value &= CLR[left as usize];
+            }
+
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("x index is out of bounds"))
+        }
+    }
+
+    fn draw_line(c1: Vect2D, c2: Vect2D, color: bool) -> anyhow::Result<()> {}
+
+    fn draw_hline(c: Vect2D, len: u16, color: bool) -> anyhow::Result<()> {}
+
+    fn draw_vline(c: Vect2D, hight: u16, color: bool) -> anyhow::Result<()> {}
+
+    fn draw_buffer(c: Vect2D, buffer: &[u8]) -> anyhow::Result<()> {}
+}*/
