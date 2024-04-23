@@ -30,10 +30,24 @@ fn main() -> Result<()> {
     let delay: Delay = Default::default();
 
     loop {
+        display.set_pixel(0, 10, false)?;
+        display.set_pixel(0, 11, false)?;
+        display.set_pixel(2, 10, false)?;
+        display.set_pixel(2, 11, false)?;
+        display.set_pixel(4, 10, false)?;
+        display.set_pixel(4, 11, false)?;
+        display.set_pixel(6, 10, false)?;
+        display.set_pixel(6, 11, false)?;
+        display.set_pixel(8, 10, false)?;
+        display.set_pixel(8, 11, false)?;
         display.set_pixel(10, 10, false)?;
         display.set_pixel(10, 11, false)?;
-        display.set_pixel(11, 10, false)?;
-        display.set_pixel(11, 11, false)?;
+        display.set_pixel(12, 10, false)?;
+        display.set_pixel(12, 11, false)?;
+        display.set_pixel(14, 10, false)?;
+        display.set_pixel(14, 11, false)?;
+        display.set_pixel(16, 10, false)?;
+        display.set_pixel(16, 11, false)?;
         display.refresh()?;
         led.set_high()?;
         log::info!("Set High!");
