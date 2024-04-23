@@ -18,7 +18,7 @@ const SHARPMEM_CMD_CLEAR_SCREEN: u8 = 0b00000100;
 const SET: [u8; 8] = [1, 2, 4, 8, 16, 32, 64, 128];
 const CLR: [u8; 8] = [!1, !2, !4, !8, !16, !32, !64, !128];
 
-pub struct Display<'a> {
+pub struct DisplayDriver<'a> {
     pub buffer: Vec<Vec<u8>>,
     pub width: u16,
     pub height: u16,
@@ -27,7 +27,7 @@ pub struct Display<'a> {
     bytes_per_line: u8,
 }
 
-impl<'b> Display<'b> {
+impl<'b> DisplayDriver<'b> {
     pub fn new(
         freq: Hertz,
         sclk: impl Peripheral<P = impl OutputPin> + 'b,
