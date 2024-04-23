@@ -85,18 +85,12 @@ impl<'b> DisplayDriver<'b> {
 
     pub fn refresh(&mut self) -> anyhow::Result<()> {
         let command: u8 = self.vcom | SHARPMEM_CMD_WRITE_LINE;
-        let mut commands: Vec<u8> = vec![command];
-        let mut num: u8 = 0;
-
-        while (num as u16) < self.height {
-            //log::info!("number: {}, h: {}", num, self.height);
-            let mut cloned_row = self.buffer[num as usize].clone();
-            commands.push(num + 1);
-            commands.append(&mut cloned_row);
-            commands.push(0x00);
-
-            num += 1;
-        }
+        let mut commands = self.buffer.iter().fold(vec![command], |mut acc, el| {
+            acc.push(((acc.len() - 1) / (self.bytes_per_line as usize + 2) + 1) as u8); // calculate line number
+            acc.extend(el);
+            acc.push(0x00);
+            acc
+        });
 
         commands.push(0x00);
 
@@ -105,41 +99,38 @@ impl<'b> DisplayDriver<'b> {
     }
 
     pub fn refresh_line(&mut self, line_num: u8) -> anyhow::Result<()> {
-        if line_num as u16 > self.height {
-            return Err(anyhow::anyhow!(
-                "Line number biger then height! (ln: {}, h: {})",
-                line_num,
-                self.height
-            ));
-        }
-
         let command: u8 = self.vcom | SHARPMEM_CMD_WRITE_LINE;
         let mut commands: Vec<u8> = vec![command, line_num + 1];
-        let mut cloned_row = self.buffer[line_num as usize].clone();
 
-        commands.append(&mut cloned_row);
-        commands.push(0x00);
-        commands.push(0x00);
+        if let Some(line) = &self.buffer.get_mut(line_num as usize) {
+            commands.extend(line.iter());
+            commands.push(0x00);
+            commands.push(0x00);
 
-        self.device.write(&commands).map_err(anyhow::Error::from)
+            self.toggle_vcom();
+            self.device.write(&commands).map_err(anyhow::Error::from)
+        } else {
+            Err(anyhow::anyhow!("line number is out of bounds"))
+        }
     }
 
-    pub fn set_pixel(&mut self, x: u16, y: u16, value: bool) -> anyhow::Result<()> {
-        if x >= self.width || y >= self.height {
-            return Err(anyhow::anyhow!("Dimensions out of bounds."));
+    pub fn set_pixel(&mut self, x: u16, y: u16, pixel: bool) -> anyhow::Result<()> {
+        let left: u8 = (x % 8) as u8;
+        let whole: u16 = (x - left as u16) / 8;
+        let row = self.buffer.get_mut(y as usize);
+
+        if row.is_none() {
+            return Err(anyhow::anyhow!("y index is out of bounds"));
         }
 
-        let left: u8 = (x % 8) as u8;
-        let whole: u16 = x - left as u16;
-
-        if value {
-            let value: u8 = SET[left as usize];
-
-            self.buffer[y as usize][whole as usize] |= value;
+        if let Some(value) = row.unwrap().get_mut(whole as usize) {
+            if pixel {
+                *value |= SET[left as usize];
+            } else {
+                *value &= CLR[left as usize];
+            }
         } else {
-            let value: u8 = CLR[left as usize];
-
-            self.buffer[y as usize][whole as usize] &= value;
+            return Err(anyhow::anyhow!("x index is out of bounds"));
         }
 
         Ok(())
