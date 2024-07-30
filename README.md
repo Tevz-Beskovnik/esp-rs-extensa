@@ -1,6 +1,6 @@
 # ESP32 shrap memory display implementation
 
-## SETTING UP ENVIRONMENT
+## Setting up environment
 
 Before starting development make sure you have your development environment setup correctly for the target you are building for. A quick introduction to embeded development in rust for the esp32 can be found [here](https://docs.esp-rs.org/book/introduction.html). With everything from setting up your first project, to building and flashing covered, however I will provide a quick rundown on how to get started.
 
@@ -27,14 +27,36 @@ cargo install ldproxy
 After that you should be good to go.
 (If you find any issues with the above provided steps please open an issue)
 
-## BUILDING
+## Building
 
-**IF YOU ARE ON OSX make sure to run `export CRATE_CC_NO_DEFAULTS=1` before building it will save you precious hours.**
+**IF YOU ARE ON OSX make sure to run `export CRATE_CC_NO_DEFAULTS=1` before building or running any of the bellow scripts it will save you precious hours.**
 
-To build the library simply call `cargo build --release`. Witch will build your program in release mode.
+After that you want to use the provided scripts for flashing the file system or app.
 
-To flash it install `espflash` or `cargo install cargo-espflash` with cargo and run the follwing command:
+**NOTE:**
 
+**When following the bellow steps do not disconet the serial cable, it will brick your device**
+
+## Flashing the app
+
+To flash the app run the following command from home directory:
+
+```sh
+chmod +x ./scripts/flash_app.sh
+./scripts/flash_app.sh release monitor
+````
+
+This will build the app in release mode, flash it and open up the serial monitor.
+
+## Flashing the filesystem
+
+Before flashing the file system, please check that your flash is big enough to use the flash configuration provided, ideally 2MB should be enough.
+
+Run the following command to flash the filesystem:
+
+```sh
+chmod +x ./scripts/flash_spiffs.sh
+./scripts/flash_spiffs.sh
 ```
-cargo espflash flash --monitor
-```
+
+***PRO TIP: before adding execution privilages to any file and running it, it is advised you look over it once or twice to make sure you are not installing malware***
