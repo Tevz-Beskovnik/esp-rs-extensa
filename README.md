@@ -59,4 +59,12 @@ chmod +x ./scripts/flash_spiffs.sh
 ./scripts/flash_spiffs.sh
 ```
 
+## Monitoring
+
+To monitor the chip trought serial run:
+
+```sh
+espflash monitor
+```
+
 ***PRO TIP: before adding execution privilages to any file and running it, it is advised you look over it once or twice to make sure you are not installing malware***
