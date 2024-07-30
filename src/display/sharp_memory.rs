@@ -72,7 +72,7 @@ impl Display for SharpMemoryDisplay<'_> {
         let command: u8 = self.vcom | SHARPMEM_CMD_WRITE_LINE;
         let mut commands = buffer.iter().fold(vec![command], |mut acc, el| {
             acc.push(((acc.len() - 1) / (el.len() + 2) + 1) as u8); // calculate line number
-            acc.extend(*el);
+            acc.extend(el.clone());
             acc.push(0x00);
             acc
         });
