@@ -29,7 +29,7 @@ if [[ $? -ne 0 ]]; then
     exit
 fi
 
-esptool.py --version >> /dev/null
+esptool.py -h >> /dev/null
 
 if [[ $? -ne 0 ]]; then
     echo "Please install esptool.py."
@@ -54,14 +54,13 @@ if [[ ! -z "$PORT" ]]; then
     PORT="--port $PORT"
 fi
 
-
 echo "Attempting to flash partitions to chip..."
 
 esptool.py $PORT --chip "$CHIP_TYPE" write_flash -z 0x8000 partitions.bin
 
 echo "Attempting to flash image to chip..."
 
-esptool.py $PORT --chip "$CHIP_TYPE" write_flash -z 0x110000 spiffs.bin
+esptool.py $PORT --chip "$CHIP_TYPE" write_flash -z 0x210000 spiffs.bin
 
 echo "Cleaning up generated files..."
 

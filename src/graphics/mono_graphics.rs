@@ -275,8 +275,9 @@ impl Draw<bool> for MonoGraphics<'_> {
         let total_w = acutal_x + w;
 
         for i in corner.y..total_h - (total_h % self.height) {
-            for j in acutal_x / 8..total_w - (total_w % self.width) / 8 {
-                self.buffer[i as usize][j as usize] = texture[(i * self.width + j) as usize];
+            for j in acutal_x / 8..(total_w - (total_w % self.width)) / 8 {
+                self.buffer[i as usize][j as usize] =
+                    texture[(i * self.width / 8 + j + 4) as usize];
             }
         }
 

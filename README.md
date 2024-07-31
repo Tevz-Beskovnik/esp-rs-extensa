@@ -29,7 +29,7 @@ After that you should be good to go.
 
 ## Building
 
-**IF YOU ARE ON OSX make sure to run `export CRATE_CC_NO_DEFAULTS=1` before building or running any of the bellow scripts it will save you precious hours.**
+**IF YOU ARE ON OSX make sure to run `export CRATE_CC_NO_DEFAULTS=1`, or laternatively add it to `config.toml` in the `.cargo` folder before building or running any of the bellow scripts it will save you precious hours.**
 
 After that you want to use the provided scripts for flashing the file system or app.
 
@@ -44,7 +44,7 @@ To flash the app run the following command from home directory:
 ```sh
 chmod +x ./scripts/flash_app.sh
 ./scripts/flash_app.sh release monitor
-````
+```
 
 This will build the app in release mode, flash it and open up the serial monitor.
 
@@ -67,4 +67,4 @@ To monitor the chip trought serial run:
 espflash monitor
 ```
 
-***PRO TIP: before adding execution privilages to any file and running it, it is advised you look over it once or twice to make sure you are not installing malware***
+**_PRO TIP: before adding execution privilages to any file and running it, it is advised you look over it once or twice to make sure you are not installing malware_**

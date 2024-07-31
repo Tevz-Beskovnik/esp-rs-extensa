@@ -3,7 +3,7 @@ use esp_idf_svc::hal::prelude::*;
 use esp_idf_svc::hal::{delay::Delay, peripherals::Peripherals};
 use esp_rs_extensa::display::SharpMemoryDisplay;
 use esp_rs_extensa::filesystem::register_spiffs_partition;
-use esp_rs_extensa::graphics::{Draw, MonoGraphics, Vect2D, WHITE};
+use esp_rs_extensa::graphics::{Draw, MonoGraphics, Vect2D, BLACK, WHITE};
 
 const MOUNT_POINT: &str = "/spiffs";
 const PARTITION_NAME: &str = "storage";
@@ -59,6 +59,7 @@ fn main() -> Result<()> {
             graphics.draw_vline(Vect2D { x: 19 - i, y: 20 }, i, BLACK)?;
         }*/
         graphics.draw_texture_from_flash(Vect2D::new(0, 0), "/spiffs/land.img")?;
+        // graphics.draw_hline(Vect2D::new(10, 10), 40, BLACK)?;
         graphics.draw()?;
         log::info!("draw display");
         delay.delay_us(1000000);
@@ -91,7 +92,7 @@ fn main() -> Result<()> {
         display.refresh()?;*/
         led.set_low()?;*/
         graphics.clear(WHITE)?;
-        graphics.clear_display()?;
+        //graphics.clear_display()?;
         log::info!("Clear display");
         delay.delay_us(1000000);
     }

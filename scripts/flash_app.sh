@@ -40,6 +40,6 @@ cargo build $BUILD_MODE
 
 echo "Flashing app to chip..."
 
-espflash flash "target/xtensa-esp32-espidf/$MODE/esp-rs-extensa" $MONITOR
+espflash flash "target/xtensa-esp32-espidf/$MODE/esp-rs-extensa" $MONITOR --partition-table ./util/partitions.csv
 
 echo "Done!"

@@ -8,7 +8,7 @@ pub fn register_spiffs_partition(mount_point: &str, partition_name: &str) -> any
         base_path: base_path.as_ptr(),
         partition_label: partition.as_ptr(),
         max_files: 5,
-        format_if_mount_failed: true,
+        format_if_mount_failed: false,
     };
 
     unsafe {
